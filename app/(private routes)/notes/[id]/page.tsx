@@ -3,10 +3,10 @@ import {
   dehydrate,
   HydrationBoundary,
 } from "@tanstack/react-query";
-import NoteDetailsClient from "./NoteDetails.client";
-import { fetchNoteById } from "@/lib/api/clientApi";
+import type { Metadata } from "next";
 
-import { Metadata } from "next";
+import NoteDetailsClient from "./NoteDetails.client";
+import { fetchNoteByIdServer } from "@/lib/api/serverApi";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -14,20 +14,25 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const note = await fetchNoteById(id);
+
+  const note = await fetchNoteByIdServer(id);
+
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
+  const description =
+    note.content?.trim().length === 0
+      ? "View note details in NoteHub."
+      : note.content.slice(0, 160);
+
   return {
     title: `Note: ${note.title}`,
-    description:
-      note.content?.trim().length === 0
-        ? "View note details in NoteHub."
-        : note.content.slice(0, 160),
+    description,
+    alternates: {
+      canonical: `${baseUrl}/notes/${id}`,
+    },
     openGraph: {
       title: `Note: ${note.title}`,
-      description:
-        note.content?.trim().length === 0
-          ? "View note details in NoteHub."
-          : note.content.slice(0, 160),
-      url: `https://08-zustand-git-main-alisa-pagans-projects.vercel.app/${id}`,
+      description,
+      url: `${baseUrl}/notes/${id}`,
       siteName: "NoteHub",
       images: [
         {
@@ -53,7 +58,7 @@ export default async function NoteDetailsPage({
 
   await qc.prefetchQuery({
     queryKey: ["note", id],
-    queryFn: () => fetchNoteById(id),
+    queryFn: () => fetchNoteByIdServer(id),
   });
 
   return (

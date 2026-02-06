@@ -1,29 +1,42 @@
-import css from "./ProfilePage.module.css";
-import Image from "next/image";
 import Link from "next/link";
+import Image from "next/image";
+import type { Metadata } from "next";
+import css from "./ProfilePage.module.css";
 
-import { getMe } from "@/lib/api/clientApi";
+import { getMeServer } from "@/lib/api/serverApi";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Profile — NoteHub",
-  description: "Your NoteHub profile.",
+  description: "Your NoteHub profile page.",
   openGraph: {
     title: "Profile — NoteHub",
-    description: "Your NoteHub profile.",
+    description: "Your NoteHub profile page.",
     url: "http://localhost:3000/profile",
-    images: ["https://ac.goit.global/fullstack/react/notehub-og-meta.jpg"],
+    images: [
+      {
+        url: "https://ac.goit.global/fullstack/react/notehub-og-meta.jpg",
+        width: 1200,
+        height: 630,
+        alt: "NoteHub",
+      },
+    ],
+    type: "website",
   },
 };
 
 export default async function ProfilePage() {
-  const user = await getMe();
+  const user = await getMeServer();
 
   return (
     <main className={css.mainContent}>
       <div className={css.profileCard}>
         <div className={css.header}>
           <h1 className={css.formTitle}>Profile Page</h1>
-          <Link href="/profile/edit" className={css.editProfileButton}>
+          <Link
+            href="/profile/edit"
+            className={css.editProfileButton}
+            prefetch={false}
+          >
             Edit Profile
           </Link>
         </div>
@@ -35,6 +48,7 @@ export default async function ProfilePage() {
             width={120}
             height={120}
             className={css.avatar}
+            priority
           />
         </div>
 
