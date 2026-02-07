@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkSessionServer } from "./lib/api/serverApi";
 
 const PRIVATE_PREFIXES = ["/profile", "/notes"];
 const AUTH_ROUTES = ["/sign-in", "/sign-up"];
@@ -11,10 +12,16 @@ function isAuthPath(pathname: string) {
   return AUTH_ROUTES.some((p) => pathname.startsWith(p));
 }
 
-export function proxy(req: NextRequest) {
+function buildCookieHeader(req: NextRequest) {
+  return req.cookies
+    .getAll()
+    .map((c) => `${c.name}=${c.value}`)
+    .join("; ");
+}
+
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // ✅ never proxy Next assets or API routes
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api") ||
@@ -23,24 +30,47 @@ export function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // cookie name(s) can differ depending on the provided api routes
-  // we'll treat "any cookie at all that contains accessToken" as authenticated
-  const cookie = req.headers.get("cookie") ?? "";
-  const isAuthed = cookie.includes("accessToken=");
+  const hasAccessToken = Boolean(req.cookies.get("accessToken")?.value);
+  const hasRefreshToken = Boolean(req.cookies.get("refreshToken")?.value);
 
-  // not authed -> block private pages
+  let isAuthed = hasAccessToken;
+  let setCookieFromRefresh: string[] | null = null;
+
+  if (!hasAccessToken && hasRefreshToken) {
+    try {
+      const cookieHeader = buildCookieHeader(req);
+      const sessionRes = await checkSessionServer({ cookie: cookieHeader });
+
+      isAuthed = Boolean(sessionRes.data);
+
+      const setCookie = sessionRes.headers["set-cookie"];
+      if (Array.isArray(setCookie) && setCookie.length > 0) {
+        setCookieFromRefresh = setCookie;
+      }
+    } catch {
+      isAuthed = false;
+    }
+  }
+
+  let res: NextResponse;
+
   if (!isAuthed && isPrivatePath(pathname)) {
     const url = req.nextUrl.clone();
     url.pathname = "/sign-in";
-    return NextResponse.redirect(url);
-  }
-
-  // authed -> block auth pages
-  if (isAuthed && isAuthPath(pathname)) {
+    res = NextResponse.redirect(url);
+  } else if (isAuthed && isAuthPath(pathname)) {
     const url = req.nextUrl.clone();
-    url.pathname = "/profile";
-    return NextResponse.redirect(url);
+    url.pathname = "/"; 
+    res = NextResponse.redirect(url);
+  } else {
+    res = NextResponse.next();
   }
 
-  return NextResponse.next();
+  if (setCookieFromRefresh) {
+    setCookieFromRefresh.forEach((value) => {
+      res.headers.append("set-cookie", value);
+    });
+  }
+
+  return res;
 }

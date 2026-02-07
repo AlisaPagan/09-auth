@@ -55,7 +55,7 @@ export default function NoteForm() {
   }
 
   function handleCancel() {
-    router.back(); // do not clear draft
+    router.back();
   }
 
   return (

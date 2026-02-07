@@ -60,9 +60,11 @@ export type FetchNotesParams = {
   tag?: string;
 };
 
-export async function fetchNotes(params: FetchNotesParams): Promise<FetchNotesResponse> {
-  const res = await api.get("/notes", { params });
-  return unwrap<FetchNotesResponse>(res.data, "Failed to load notes");
+export async function fetchNotes(
+  params: FetchNotesParams
+): Promise<FetchNotesResponse> {
+  const { data } = await api.get<FetchNotesResponse>("/notes", { params });
+  return data;
 }
 
 export async function fetchNoteById(id: string): Promise<Note> {

@@ -5,7 +5,7 @@ import {
 } from "@tanstack/react-query";
 
 import NotesClient from "./Notes.client";
-import { fetchNotes } from "@/lib/api/clientApi";
+import { fetchNotesServer } from "@/lib/api/serverApi";
 
 import { Metadata } from "next";
 
@@ -22,6 +22,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     filter === "all"
       ? "Browse all notes in NoteHub."
       : `Browse notes tagged ${filter}.`;
+
   return {
     title: title,
     description: description.slice(0, 160),
@@ -60,7 +61,7 @@ export default async function FilterPage({
   await qc.prefetchQuery({
     queryKey: ["notes", tag, 1, "", PER_PAGE],
     queryFn: () =>
-      fetchNotes({
+      fetchNotesServer({
         page: 1,
         perPage: PER_PAGE,
         search: "",

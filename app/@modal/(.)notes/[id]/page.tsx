@@ -5,7 +5,7 @@ import {
 } from "@tanstack/react-query";
 
 import NotePreviewClient from "./NotePreview.client";
-import { fetchNoteById } from "@/lib/api/clientApi";
+import { fetchNoteByIdServer } from "@/lib/api/serverApi";
 
 export default async function NoteModalPage({
   params,
@@ -18,7 +18,7 @@ export default async function NoteModalPage({
 
   await qc.prefetchQuery({
     queryKey: ["note", id],
-    queryFn: () => fetchNoteById(id),
+    queryFn: () => fetchNoteByIdServer(id),
   });
 
   return (
